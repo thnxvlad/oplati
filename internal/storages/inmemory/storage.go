@@ -60,3 +60,14 @@ func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInf
 
 	return ui, nil
 }
+
+func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
+	s.RLock()
+	defer s.RUnlock()
+	users := make([]domain.UserInfo, len(s.db))
+	for _, value := range s.db{
+			users = append(users, value)
+	} 
+	//пока не придумал когда ошибку выводить
+	return users, nil
+}

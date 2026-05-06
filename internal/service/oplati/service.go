@@ -20,6 +20,15 @@ func New(db OplatiDatabase) *Service {
 type OplatiDatabase interface {
 	CreateUser(ctx context.Context, ui domain.UserInfo) error
 	Deposit(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error)
+	GetUsersInfo(ctx context.Context)([]domain.UserInfo, error)
+}
+
+func (s *Service) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
+	users, err := s.db.GetUsersInfo(ctx)
+	if err != nil{
+		return []domain.UserInfo{}, err
+	}
+	return users, err
 }
 
 func (s *Service) CreateUser(ctx context.Context, name string) (domain.UserInfo, error) {

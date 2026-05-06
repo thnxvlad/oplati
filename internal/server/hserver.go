@@ -23,7 +23,11 @@ func NewPublicServer(
 	//  TODO: перевести сумму денег с одного пользователя на другой
 
 	// TODO: доделать public server
+	//
+	
 
+
+	//
 	return &Server{}
 }
 
@@ -46,6 +50,6 @@ func NewPrivateServer(
 
 	mux.HandleFunc("POST /newUser", server.newUserHandler)
 	//  TODO: просмотреть информацию о всех пользователях
-
+	mux.HandleFunc("GET /getUsersInfo", server.getUsersInfoHandler)
 	return server
 }
