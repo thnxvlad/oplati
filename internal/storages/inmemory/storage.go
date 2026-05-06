@@ -64,7 +64,7 @@ func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInf
 func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 	s.RLock()
 	defer s.RUnlock()
-	users := make([]domain.UserInfo, len(s.db))
+	var users []domain.UserInfo
 	for _, value := range s.db{
 			users = append(users, value)
 	} 
