@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/thnxvlad/oplati/internal/domain"
-	//"github.com/google/uuid"
 )
 
 type GetUsersResponse struct { 
@@ -13,20 +12,13 @@ type GetUsersResponse struct {
  }
 
 func (s *Server) getUsersInfoHandler(w http.ResponseWriter, r *http.Request) {
-	
-
-	users, err := s.oplatiService.GetUsersInfo(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
+	users := s.oplatiService.GetUsersInfo(r.Context())
 	response := GetUsersResponse{
 		Users : users,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(response)
+	err := json.NewEncoder(w).Encode(response)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

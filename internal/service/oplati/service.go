@@ -19,17 +19,31 @@ func New(db OplatiDatabase) *Service {
 
 type OplatiDatabase interface {
 	CreateUser(ctx context.Context, ui domain.UserInfo) error
-	Deposit(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error)
-	GetUsersInfo(ctx context.Context)([]domain.UserInfo, error)
+	UpdateBalance(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error)
+	GetUsersInfo(ctx context.Context)([]domain.UserInfo)
+	GetUser(ctx context.Context, id uuid.UUID)(domain.UserInfo, error)
+	Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) (error)
 }
 
-func (s *Service) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
-	users, err := s.db.GetUsersInfo(ctx)
-	if err != nil{
-		return []domain.UserInfo{}, err
-	}
-	return users, err
+func (s *Service) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) (error) {
+	err := s.db.Transfer(ctx, senderID, recipientID, amount)
+	return err
 }
+
+func (s *Service) GetUsersInfo(ctx context.Context) ([]domain.UserInfo) {
+	users := s.db.GetUsersInfo(ctx)
+	return users
+}
+
+func (s *Service) GetUser(ctx context.Context, id uuid.UUID) (domain.UserInfo, error) {
+	ui, err := s.db.GetUser(ctx, id)
+
+	if err != nil {
+		return domain.UserInfo{}, err
+	}
+
+	return ui, nil
+} 
 
 func (s *Service) CreateUser(ctx context.Context, name string) (domain.UserInfo, error) {
 	ui := domain.UserInfo{
@@ -47,7 +61,16 @@ func (s *Service) CreateUser(ctx context.Context, name string) (domain.UserInfo,
 }
 
 func (s *Service) Deposit(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error) {
-	ui, err := s.db.Deposit(ctx, userId, amount)
+	ui, err := s.db.UpdateBalance(ctx, userId, amount)
+	if err != nil {
+		return domain.UserInfo{}, err
+	}
+
+	return ui, nil
+}
+
+func (s *Service) Withdraw(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error) {
+	ui, err := s.db.UpdateBalance(ctx, userId, -amount)
 	if err != nil {
 		return domain.UserInfo{}, err
 	}

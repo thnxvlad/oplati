@@ -20,6 +20,31 @@ func NewStorage() *Storage {
 	}
 }
 
+func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) (error) {
+	s.Lock()
+	defer s.Unlock()
+
+	si, ok := s.db[senderID]
+	if !ok {
+		return errors.New("sender id does not exist")
+	}
+	ri, ok := s.db[recipientID]
+	if !ok {
+		return errors.New("sender id does not exist")
+	}
+
+	si.Balance -= amount
+	if si.Balance < 0 {
+		return errors.New("not enough funds")
+	}
+	s.db[senderID] = si
+
+	ri.Balance += amount
+	s.db[recipientID] = ri
+
+	return nil
+}
+
 func (s *Storage) CreateUser(ctx context.Context, ui domain.UserInfo) error {
 	s.Lock()
 	defer s.Unlock()
@@ -33,7 +58,7 @@ func (s *Storage) CreateUser(ctx context.Context, ui domain.UserInfo) error {
 	return nil
 }
 
-func (s *Storage) Deposit(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error) {
+func (s *Storage) UpdateBalance(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -43,7 +68,9 @@ func (s *Storage) Deposit(ctx context.Context, userId uuid.UUID, amount int) (do
 	}
 
 	ui.Balance += amount
-
+	if ui.Balance < 0 {
+		return domain.UserInfo{}, errors.New("not enough money")
+	}
 	s.db[userId] = ui
 
 	return ui, nil
@@ -61,13 +88,13 @@ func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInf
 	return ui, nil
 }
 
-func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
+func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo) {
 	s.RLock()
 	defer s.RUnlock()
 	var users []domain.UserInfo
 	for _, value := range s.db{
 			users = append(users, value)
 	} 
-	//пока не придумал когда ошибку выводить
-	return users, nil
+	
+	return users
 }
