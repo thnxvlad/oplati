@@ -18,30 +18,10 @@ func New(db OplatiDatabase) *Service {
 }
 
 type OplatiDatabase interface {
-	CreateUser(ctx context.Context, ui domain.UserInfo) error
-	Deposit(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error)
-}
-
-func (s *Service) CreateUser(ctx context.Context, name string) (domain.UserInfo, error) {
-	ui := domain.UserInfo{
-		Id:      uuid.New(),
-		Name:    name,
-		Balance: 0,
-	}
-
-	err := s.db.CreateUser(ctx, ui)
-	if err != nil {
-		return domain.UserInfo{}, err
-	}
-
-	return ui, nil
-}
-
-func (s *Service) Deposit(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error) {
-	ui, err := s.db.Deposit(ctx, userId, amount)
-	if err != nil {
-		return domain.UserInfo{}, err
-	}
-
-	return ui, nil
+	CreateUser(ctx context.Context, userId uuid.UUID) error
+	GetUser(ctx context.Context, userId uuid.UUID) error
+	GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error)
+	Transfer(ctx context.Context, userIDFirst uuid.UUID, userIDSecond uuid.UUID, amount int) error
+	Deposit(ctx context.Context, userId uuid.UUID, amount int) error
+	Withdraw(ctx context.Context, userId uuid.UUID, amount int) error
 }
