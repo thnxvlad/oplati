@@ -5,14 +5,13 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	hmiddlewares "github.com/thnxvlad/oplati/internal/server/hmiddlewares"
 )
 
 type TransferRequest struct {
-	SenderID uuid.UUID `json:"senderID"`
 	RecipientID uuid.UUID `json:"recipientID"`
-	Amount int `json:"amount"`
+	Amount      int       `json:"amount"`
 }
-
 
 func (s *Server) transferHandler(w http.ResponseWriter, r *http.Request) {
 	request := TransferRequest{}
@@ -22,7 +21,9 @@ func (s *Server) transferHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.oplatiService.Transfer(r.Context(), request.SenderID, request.RecipientID, request.Amount)
+	userID, _ := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+
+	err = s.oplatiService.Transfer(r.Context(), userID, request.RecipientID, request.Amount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

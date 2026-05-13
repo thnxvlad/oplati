@@ -9,18 +9,24 @@ import (
 	"github.com/thnxvlad/oplati/internal/domain"
 )
 
+
 type Storage struct {
 	db map[uuid.UUID]domain.UserInfo
+	lp map[string]string
 	sync.RWMutex
 }
 
 func NewStorage() *Storage {
 	return &Storage{
 		db: make(map[uuid.UUID]domain.UserInfo),
+		lp: make(map[string]string),
 	}
 }
 
-func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) (error) {
+func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) error {
+	if ctx.Err() != nil {
+		return errors.New("request terminated")
+	} 
 	s.Lock()
 	defer s.Unlock()
 
@@ -30,7 +36,7 @@ func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID 
 	}
 	ri, ok := s.db[recipientID]
 	if !ok {
-		return errors.New("sender id does not exist")
+		return errors.New("recipient id does not exist")
 	}
 
 	si.Balance -= amount
@@ -46,6 +52,9 @@ func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID 
 }
 
 func (s *Storage) CreateUser(ctx context.Context, ui domain.UserInfo) error {
+	if ctx.Err() != nil {
+		return errors.New("request terminated")
+	} 
 	s.Lock()
 	defer s.Unlock()
 
@@ -53,12 +62,19 @@ func (s *Storage) CreateUser(ctx context.Context, ui domain.UserInfo) error {
 		return errors.New("id already exists")
 	}
 
-	s.db[ui.Id] = ui
+	if _, ok := s.lp[ui.Login]; ok {
+		return errors.New("login already exists")
+	}
 
+	s.db[ui.Id] = ui
+	s.lp[ui.Login] = ui.Password
 	return nil
 }
 
 func (s *Storage) UpdateBalance(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error) {
+	if ctx.Err() != nil {
+		return domain.UserInfo{}, errors.New("request terminated")
+	} 
 	s.Lock()
 	defer s.Unlock()
 
@@ -77,6 +93,9 @@ func (s *Storage) UpdateBalance(ctx context.Context, userId uuid.UUID, amount in
 }
 
 func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInfo, error) {
+	if ctx.Err() != nil {
+		return domain.UserInfo{}, errors.New("request terminated")
+	} 
 	s.RLock()
 	defer s.RUnlock()
 
@@ -88,13 +107,16 @@ func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInf
 	return ui, nil
 }
 
-func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo) {
+func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error){
+	if ctx.Err() != nil {
+		return []domain.UserInfo{}, errors.New("request terminated")
+	} 
 	s.RLock()
 	defer s.RUnlock()
 	var users []domain.UserInfo
-	for _, value := range s.db{
-			users = append(users, value)
-	} 
-	
-	return users
+	for _, value := range s.db {
+		users = append(users, value)
+	}
+
+	return users, nil
 }

@@ -17,12 +17,6 @@ func NewPublicServer(
 	addr string,
 	mws ...func(next http.Handler) http.Handler,
 ) *Server {
-	//  TODO: пополнить баланс
-	//  TODO: просмотреть информацию о конкретном пользователе по id
-	//  TODO: снять деньги с баланса
-	//  TODO: перевести сумму денег с одного пользователя на другой
-
-	// TODO: доделать public server
 	mux := http.NewServeMux()
 
 	httpServer := http.Server{
@@ -39,7 +33,7 @@ func NewPublicServer(
 	mux.HandleFunc("PUT /withdraw", server.withdrawHandler)
 	mux.HandleFunc("GET /getUser", server.getUserHandler)
 	mux.HandleFunc("PUT /transfer", server.transferHandler)
-
+	mux.HandleFunc("POST /newUser", server.newUserHandler)
 
 	return server
 }
@@ -61,8 +55,6 @@ func NewPrivateServer(
 		Server:        &httpServer,
 	}
 
-	mux.HandleFunc("POST /newUser", server.newUserHandler)
-	//  TODO: просмотреть информацию о всех пользователях
 	mux.HandleFunc("GET /getUsersInfo", server.getUsersInfoHandler)
 	
 	return server

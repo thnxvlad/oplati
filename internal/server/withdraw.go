@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	hmiddlewares "github.com/thnxvlad/oplati/internal/server/hmiddlewares"
 )
 
 type WithdrawRequest struct {
-	ID     uuid.UUID `json:"id"`
-	Amount int       `json:"deposit"`
+	Amount int `json:"deposit"`
 }
 
 type WithdrawResponse struct {
@@ -29,7 +29,10 @@ func (s *Server) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "amount must be positive", http.StatusBadRequest)
 		return
 	}
-	ui, err := s.oplatiService.Withdraw(r.Context(), request.ID, request.Amount)
+
+	userID, _ := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+
+	ui, err := s.oplatiService.Withdraw(r.Context(), userID, request.Amount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

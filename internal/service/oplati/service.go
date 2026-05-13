@@ -2,11 +2,19 @@ package oplati
 
 import (
 	"context"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/thnxvlad/oplati/internal/domain"
 )
 
+
+
+type userClaims struct {
+	UserID string `json:"user_id"`
+	jwt.RegisteredClaims
+}
 type Service struct {
 	db OplatiDatabase
 }
@@ -20,19 +28,19 @@ func New(db OplatiDatabase) *Service {
 type OplatiDatabase interface {
 	CreateUser(ctx context.Context, ui domain.UserInfo) error
 	UpdateBalance(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error)
-	GetUsersInfo(ctx context.Context)([]domain.UserInfo)
-	GetUser(ctx context.Context, id uuid.UUID)(domain.UserInfo, error)
-	Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) (error)
+	GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error)
+	GetUser(ctx context.Context, id uuid.UUID) (domain.UserInfo, error)
+	Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) error
 }
 
-func (s *Service) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) (error) {
+func (s *Service) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) error {
 	err := s.db.Transfer(ctx, senderID, recipientID, amount)
 	return err
 }
 
-func (s *Service) GetUsersInfo(ctx context.Context) ([]domain.UserInfo) {
-	users := s.db.GetUsersInfo(ctx)
-	return users
+func (s *Service) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
+	users, err := s.db.GetUsersInfo(ctx)
+	return users, err
 }
 
 func (s *Service) GetUser(ctx context.Context, id uuid.UUID) (domain.UserInfo, error) {
@@ -43,21 +51,40 @@ func (s *Service) GetUser(ctx context.Context, id uuid.UUID) (domain.UserInfo, e
 	}
 
 	return ui, nil
-} 
+}
 
-func (s *Service) CreateUser(ctx context.Context, name string) (domain.UserInfo, error) {
-	ui := domain.UserInfo{
-		Id:      uuid.New(),
-		Name:    name,
-		Balance: 0,
+func generateToken(userID uuid.UUID) (string, error) {
+	now := time.Now()
+	claims := &userClaims{
+		UserID: userID.String(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    "oplati-api",
+		},
 	}
 
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(domain.JwtSecret))
+}
+
+func (s *Service) CreateUser(ctx context.Context, login, password string) (string, error) {
+	ui := domain.UserInfo{
+		Id:       uuid.New(),
+		Name:     login,
+		Balance:  0,
+		Login:    login,
+		Password: password,
+	}
+	
 	err := s.db.CreateUser(ctx, ui)
 	if err != nil {
-		return domain.UserInfo{}, err
+		return "", err
 	}
+	token, err := generateToken(ui.Id);
 
-	return ui, nil
+	return token, err
 }
 
 func (s *Service) Deposit(ctx context.Context, userId uuid.UUID, amount int) (domain.UserInfo, error) {

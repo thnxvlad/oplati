@@ -5,34 +5,23 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	hmiddlewares "github.com/thnxvlad/oplati/internal/server/hmiddlewares"
 )
-
-type GetUserRequest struct {
-	ID uuid.UUID `json:"id"`
-}
-
 type GetUserResponse struct {
-	Id      uuid.UUID `json:"id"`
-	Name    string    `json:"name"`
-	Balance int       `json:"balance"`
+	Name    string `json:"name"`
+	Balance int    `json:"balance"`
 }
 
 func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	request := GetUserRequest{}
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	userID, _ := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
 
-	ui, err := s.oplatiService.GetUser(r.Context(), request.ID)
+	ui, err := s.oplatiService.GetUser(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := NewUserResponse{
-		Id:      ui.Id,
+	response := GetUserResponse{
 		Name:    ui.Name,
 		Balance: ui.Balance,
 	}
