@@ -20,7 +20,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 func LoggingMiddleware(next http.Handler) http.Handler {
 	output := zerolog.ConsoleWriter{
 		Out: 		os.Stdout,
-		TimeFormat: "01:01:01",
+		TimeFormat: "15:04:05",
 		NoColor: 	false,		
 	}
 
@@ -32,8 +32,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 				statusCode:		http.StatusOK,
 			}
 
-			ctx := logger.WithContext(r.Context())
-			next.ServeHTTP(wrapped, r.WithContext(ctx))
+			next.ServeHTTP(wrapped, r)
 
 			logger.Info().
 				Str("method", r.Method).
