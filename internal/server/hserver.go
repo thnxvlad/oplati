@@ -70,8 +70,6 @@ func NewPrivateServer(
 ) *PrivateServer {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /getUsersInfo", nil)
-
 	httpServer := http.Server{
 		Addr:    addr,
 		Handler: hmiddlewares.UseMiddlewares(mux, mws),
@@ -82,5 +80,9 @@ func NewPrivateServer(
 		Server:        &httpServer,
 	}
 
+	mux.HandleFunc("GET /getUsersInfo", server.getUsersInfoHandler)
+
 	return server
 }
+
+
