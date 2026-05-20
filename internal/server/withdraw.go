@@ -24,7 +24,11 @@ func (s *PublicServer) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	userID, ok := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	if !ok {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	err = s.oplatiService.Withdraw(r.Context(), userID, request.Amount)
 	if err != nil {

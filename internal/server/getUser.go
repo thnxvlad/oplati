@@ -13,7 +13,12 @@ type GetUserResponse struct {
 }
 
 func (s *PublicServer) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	var err error
+	userID, ok := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	if !ok {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	ui, err := s.oplatiService.GetUser(r.Context(), userID)
 	if err != nil {

@@ -13,13 +13,14 @@ type GetUsersResponse struct {
 
 func (s *PrivateServer) getUsersInfoHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := s.oplatiService.GetUsersInfo(r.Context())
-	response := GetUsersResponse{
-		Users : users,
-	}
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	response := GetUsersResponse{
+		Users : users,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

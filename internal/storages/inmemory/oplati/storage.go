@@ -22,7 +22,7 @@ func NewStorage() *Storage {
 
 func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 	if ctx.Err() != nil {
-		return []domain.UserInfo{}, errors.New("request canceled")
+		return nil, errors.New("request canceled")
 	}
 	s.RLock()
 	defer s.RUnlock()
@@ -34,26 +34,9 @@ func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 	return users, nil
 }
 
-func (s *Storage) Deposit(ctx context.Context, userId uuid.UUID, amount int) error {
-	if ctx.Err() != nil {
-		return errors.New("request canceled")
-	}
-	s.Lock()
-	defer s.Unlock()
-
-	ui, ok := s.db[userId]
-	if !ok {
-		return errors.New("user id does not exist")
-	}
-
-	s.db[userId] = ui
-
-	return nil
-}
-
 func (s *Storage) UpdateBalance(ctx context.Context, userId uuid.UUID, amount int) error {
 	if ctx.Err() != nil {
-		return errors.New("request terminated")
+		return errors.New("context cancelled")
 	}
 	s.Lock()
 	defer s.Unlock()
@@ -72,9 +55,23 @@ func (s *Storage) UpdateBalance(ctx context.Context, userId uuid.UUID, amount in
 	return nil
 }
 
+// func (s *Storage) updateBalance(ctx context.Context, userId uuid.UUID, amount int) error {
+// 	ui, ok := s.db[userId]
+// 	if !ok {
+// 		return errors.New("user id does not exist")
+// 	}
+// 	ui.Balance += amount
+// 	if ui.Balance < 0 {
+// 		return errors.New("not enough money")
+// 	}
+// 	s.db[userId] = ui
+
+// 	return nil
+// }
+
 func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) error {
 	if ctx.Err() != nil {
-		return errors.New("request terminated")
+		return errors.New("context cancelled")
 	} 
 	s.Lock()
 	defer s.Unlock()
@@ -99,3 +96,5 @@ func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID 
 
 	return nil
 }
+
+

@@ -21,7 +21,11 @@ func (s *PublicServer) transferHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	userID, ok := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	if !ok {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	err = s.oplatiService.Transfer(r.Context(), userID, request.RecipientID, request.Amount)
 	if err != nil {

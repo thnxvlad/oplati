@@ -20,7 +20,11 @@ func (s *PublicServer) depositHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	userID, ok := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
+	if !ok {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	err = s.oplatiService.Deposit(r.Context(), userID, request.Dep)
 	if err != nil {
