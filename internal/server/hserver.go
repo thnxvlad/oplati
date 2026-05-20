@@ -43,12 +43,6 @@ func NewPublicServer(
 ) *PublicServer {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("PUT /deposit", nil)
-	mux.HandleFunc("PUT /withdraw", nil)
-	mux.HandleFunc("GET /getUser", nil)
-	mux.HandleFunc("PUT /transfer", nil)
-	mux.HandleFunc("POST /newUser", nil)
-
 	httpServer := http.Server{
 		Addr:    addr,
 		Handler: hmiddlewares.UseMiddlewares(mux, mws),
@@ -58,6 +52,12 @@ func NewPublicServer(
 		oplatiService: oplatiService,
 		Server:        &httpServer,
 	}
+
+	mux.HandleFunc("PUT /deposit", server.depositHandler)
+	mux.HandleFunc("PUT /withdraw", server.withdrawHandler)
+	mux.HandleFunc("GET /getUser", server.getUserHandler)
+	mux.HandleFunc("PUT /transfer", server.transferHandler)
+	mux.HandleFunc("POST /newUser", nil)
 
 	return server
 }
@@ -84,5 +84,3 @@ func NewPrivateServer(
 
 	return server
 }
-
-

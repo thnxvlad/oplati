@@ -54,12 +54,15 @@ func (s *Service) Transfer(ctx context.Context, senderID uuid.UUID, recipientID 
 }
 
 func (s *Service) GetUser(ctx context.Context, id uuid.UUID) (domain.UserInfo, error) {
-	// ui, err := s.db.GetUser(ctx, id)
+	ui, err := s.db.GetUser(ctx, id)
 
-	// if err != nil {
-	// 	return domain.UserInfo{}, err
-	// }
+	if err != nil {
+		return domain.UserInfo{}, err
+	}
 
-	// return ui, nil
-	return domain.UserInfo{},nil
+	return ui, nil
+}
+
+func (s *Service) CreateUser(ctx context.Context, id uuid.UUID) error {
+	return s.db.CreateUser(ctx, id)
 }

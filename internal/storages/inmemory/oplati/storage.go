@@ -97,4 +97,38 @@ func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID 
 	return nil
 }
 
+func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInfo, error) {
+	if ctx.Err() != nil {
+		return domain.UserInfo{}, errors.New("request terminated")
+	} 
+	s.RLock()
+	defer s.RUnlock()
+
+	ui, ok := s.db[userId]
+	if !ok {
+		return domain.UserInfo{}, errors.New("user id does not exist")
+	}
+
+	return ui, nil
+}
+
+func (s *Storage) CreateUser(ctx context.Context, userId uuid.UUID) error {
+	if ctx.Err() != nil {
+		return errors.New("request terminated")
+	} 
+	s.Lock()
+	defer s.Unlock()
+
+	if _, ok := s.db[userId]; ok {
+		return errors.New("id already exists")
+	}
+
+	ui := domain.UserInfo{
+		Id:       userId,
+		Balance:  0,
+	}
+
+	s.db[ui.Id] = ui
+	return nil
+}
 
