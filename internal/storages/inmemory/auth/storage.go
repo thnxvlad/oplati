@@ -10,13 +10,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ToDo: реализовать всё
 var (
-jwtSecret = os.Getenv("JWT_SECRET")
-loginData = make(map[string]string)
-accountData = make(map[string]string)
-authMu sync.RWMutex
-) 
+	jwtSecret   = os.Getenv("JWT_SECRET")
+	loginData   = make(map[string]string)
+	accountData = make(map[string]string)
+	authMu      sync.RWMutex
+)
 
 type userClaims struct {
 	UserID string `json:"user_id"`
@@ -28,10 +27,10 @@ func generateToken(userID string) (string, error) {
 	claims := &userClaims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(24*time.Hour)),
-			IssuedAt: jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
-			Issuer: "oplati-api",
+			Issuer:    "oplati-api",
 		},
 	}
 
@@ -48,20 +47,40 @@ func validateLogin(login, password string) bool {
 	return err == nil
 }
 
-func Login(login, password string) (string, error) {
+func SignIn(login, password string) (string, error) {
 	authMu.Lock()
 	defer authMu.Unlock()
 
 	if !validateLogin(login, password) {
-		return "",errors.New("invalid login or password")
+		return "", errors.New("invalid login or password")
 	}
 
 	accountId, ok := accountData[login]
 	if !ok {
-		return "",errors.New("account not found")
+		return "", errors.New("account not found")
 	}
 
 	return generateToken(accountId)
+}
+
+func SignUp(login, password, userID string) error {
+	authMu.Lock()
+	defer authMu.Unlock()
+
+	_, exists := loginData[login]
+
+	if exists {
+		return errors.New("login already exists")
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	loginData[login] = string(hashedPassword)
+	accountData[login] = userID
+
+	return nil
 }
 
 func GetAccountIdFromToken(token string) (string, error) {
