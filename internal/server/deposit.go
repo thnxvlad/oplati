@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
 	hmiddlewares "github.com/thnxvlad/oplati/internal/server/hmiddlewares"
 )
 
@@ -20,9 +19,9 @@ func (s *PublicServer) depositHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, ok := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
-	if !ok {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	userID, err := hmiddlewares.GetAccountIdFromContext(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 

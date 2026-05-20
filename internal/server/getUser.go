@@ -14,9 +14,9 @@ type GetUserResponse struct {
 
 func (s *PublicServer) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
-	userID, ok := r.Context().Value(hmiddlewares.AccountIdContextKey{}).(uuid.UUID)
-	if !ok {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	userID, err := hmiddlewares.GetAccountIdFromContext(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
