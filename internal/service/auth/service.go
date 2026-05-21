@@ -2,64 +2,112 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
 	OplatiService OplatiService
 	db            AuthDB
+	jwtSecret     string
 }
 
-func New(db AuthDB, oplatiService OplatiService) *Service {
-	return &Service{
-		db:            db,
-		OplatiService: oplatiService,
-	}
+type UserClaims struct {
+	UserID string `json:"user_id"`
+	jwt.RegisteredClaims
 }
 
 type AuthDB interface {
-	SignIn(login, password string) (string, error)
-	GetAccountIdFromToken(token string) (string, error)
-	SignUp(login, password, userID string) error
+	SignIn(ctx context.Context, login, password string) (string, error)
+	GetUserByLogin(ctx context.Context, login string) (userID, passwordHash string, err error)
+	SignUp(ctx context.Context, login, password, userID string) error
 }
 
 type OplatiService interface {
 	CreateUser(ctx context.Context, userID uuid.UUID) error
 }
 
-func (s *Service) SignIn(login, password string) (string, error) {
-	token, err := s.db.SignIn(login, password)
-	if err != nil {
-		return "",err
+func New(db AuthDB, oplatiService OplatiService) *Service {
+	return &Service{
+		db:            db,
+		OplatiService: oplatiService,
+		jwtSecret:     os.Getenv("JWT_SECRET"),
 	}
-
-	return token, nil
 }
 
-func (s *Service) SignUp(login, password, userID string) error {
-	err := s.db.SignUp(login, password, userID)
+func (s *Service) SignIn(ctx context.Context, login, password string) (string, error) {
+	id, passwordHash, err := s.db.GetUserByLogin(ctx, login)
 	if err != nil {
-		return err
+		return "", errors.New("invalid password or login")
 	}
-	return nil
+
+	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
+	if err != nil {
+		return "", errors.New("invalid password or login")
+	}
+
+	return s.generateToken(id)
 }
 
-func (s *Service) CreateUser(ctx context.Context, userID uuid.UUID) error {
-	err := s.OplatiService.CreateUser(ctx, userID)
+func (s *Service) SignUp(ctx context.Context, login, password string) (string, error) {
+	id := uuid.New()
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	err = s.db.SignUp(ctx, login, string(hashedPassword), id.String())
+	if err != nil {
+		return "", err
+	}
+
+	err = s.OplatiService.CreateUser(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := s.SignIn(ctx, login, password)
+	if err != nil {
+		return "", err
+	}
+
+	return token, err
 }
 
 func (s *Service) GetAccountIdFromToken(token string) (string, error) {
-	userID, err := s.db.GetAccountIdFromToken(token)
+	claims, err := jwt.ParseWithClaims(token, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.jwtSecret), nil
+	})
 	if err != nil {
-		return "",err
+		return "", err
 	}
 
-	return userID, nil
+	parsedClaims, ok := claims.Claims.(*UserClaims)
+	if !ok {
+		return "", errors.New("invalid claims type")
+	}
+
+	return parsedClaims.UserID, nil
 }
 
+func (s *Service) generateToken(userID string) (string, error) {
+	now := time.Now()
+	claims := &UserClaims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    "oplati-api",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	return token.SignedString([]byte(s.jwtSecret))
+}

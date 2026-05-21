@@ -1,100 +1,57 @@
 package auth
 
 import (
+	"context"
 	"errors"
-	"os"
 	"sync"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	jwtSecret   = os.Getenv("JWT_SECRET")
-	loginData   = make(map[string]string)
-	accountData = make(map[string]string)
+type Storage struct {
 	authMu      sync.RWMutex
-)
-
-type userClaims struct {
-	UserID string `json:"user_id"`
-	jwt.RegisteredClaims
+	loginData   map[string]string
+	accountData map[string]string
 }
 
-func generateToken(userID string) (string, error) {
-	now := time.Now()
-	claims := &userClaims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(now),
-			NotBefore: jwt.NewNumericDate(now),
-			Issuer:    "oplati-api",
-		},
+func New() *Storage {
+	return &Storage{
+		loginData:   make(map[string]string),
+		accountData: make(map[string]string),
 	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	return token.SignedString([]byte(jwtSecret))
 }
 
-func validateLogin(login, password string) bool {
-	hashedPassword, ok := loginData[login]
-	if !ok {
-		return false
-	}
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
-}
+func (s *Storage) SignUp(ctx context.Context, login, password, userID string) error {
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
 
-func SignIn(login, password string) (string, error) {
-	authMu.Lock()
-	defer authMu.Unlock()
-
-	if !validateLogin(login, password) {
-		return "", errors.New("invalid login or password")
-	}
-
-	accountId, ok := accountData[login]
-	if !ok {
-		return "", errors.New("account not found")
-	}
-
-	return generateToken(accountId)
-}
-
-func SignUp(login, password, userID string) error {
-	authMu.Lock()
-	defer authMu.Unlock()
-
-	_, exists := loginData[login]
+	_, exists := s.loginData[login]
 
 	if exists {
 		return errors.New("login already exists")
 	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	loginData[login] = string(hashedPassword)
-	accountData[login] = userID
+	s.loginData[login] = string(hashedPassword)
+	s.accountData[login] = userID
 
 	return nil
 }
 
-func GetAccountIdFromToken(token string) (string, error) {
-	claims, err := jwt.ParseWithClaims(token, &userClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(jwtSecret), nil
-	})
-	if err != nil {
-		return "", err
-	}
+func (s *Storage) GetUserByLogin(ctx context.Context, login string) (userID, passwordHash string, err error) {
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
 
-	parsedClaims, ok := claims.Claims.(*userClaims)
+	hash, ok := s.loginData[login]
 	if !ok {
-		return "", errors.New("invalid claims type")
+		return "", "", errors.New("user not found")
 	}
 
-	return parsedClaims.UserID, nil
+	id := s.accountData[login]
+
+	return id, hash, nil
 }
