@@ -7,14 +7,16 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/thnxvlad/oplati/internal/service/auth"
 )
 
 type AccountIdContextKey struct{}
 
+type AuthService interface {
+	GetAccountIdFromContext(token string) (uuid.UUID, error)
+}
 
 func NewAuthMiddleware(
-	authService auth.Service, 
+	authService AuthService, 
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +27,7 @@ func NewAuthMiddleware(
 			}
 
 			token = strings.TrimPrefix(token, "Bearer ")
-			accountId, err := authService.GetAccountIdFromToken(token)
+			accountId, err := authService.GetAccountIdFromContext(token)
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
