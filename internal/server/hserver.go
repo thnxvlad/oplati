@@ -71,6 +71,8 @@ func NewPrivateServer(
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /getUsersInfo", nil)
+	mux.HandleFunc("POST /signin", nil)
+	mux.HandleFunc("POST /signup", nil)
 
 	httpServer := http.Server{
 		Addr:    addr,

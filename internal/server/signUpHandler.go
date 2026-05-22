@@ -17,8 +17,6 @@ type SignUpResponse struct {
 }
 
 func (s *PrivateServer) signUpHandler(w http.ResponseWriter, r *http.Request) {
-	logger := log.Logger
-
 	req := SignUpRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -33,13 +31,13 @@ func (s *PrivateServer) signUpHandler(w http.ResponseWriter, r *http.Request) {
 
 	token, err := s.authService.SignUp(req.Login, req.Password)
 	if err != nil {
-		logger.Error().Err(err).Str("login", req.Login).Msg("failed to sign up in auth service")
+		log.Error().Err(err).Str("login", req.Login).Msg("failed to sign up in auth service")
 		http.Error(w, "registration failed", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(SignUpResponse{Token: token}); err != nil {
-		logger.Error().Err(err).Msg("failed to encode response")
+		log.Error().Err(err).Msg("failed to encode response")
 	}
 }

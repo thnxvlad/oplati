@@ -23,7 +23,6 @@ type UserClaims struct {
 }
 
 type AuthDB interface {
-	SignIn(ctx context.Context, login, password string) (string, error)
 	GetUserByLogin(ctx context.Context, login string) (userID, passwordHash string, err error)
 	SignUp(ctx context.Context, login, password, userID string) error
 }
@@ -51,18 +50,13 @@ func (s *Service) SignIn(ctx context.Context, login, password string) (string, e
 		return "", errors.New("invalid password or login")
 	}
 
-	return s.generateToken(id)
+	return s.GenerateToken(id)
 }
 
 func (s *Service) SignUp(ctx context.Context, login, password string) (string, error) {
 	id := uuid.New()
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-
-	err = s.db.SignUp(ctx, login, string(hashedPassword), id.String())
+	err := s.db.SignUp(ctx, login, string(password), id.String())
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +90,7 @@ func (s *Service) GetAccountIdFromToken(token string) (string, error) {
 	return parsedClaims.UserID, nil
 }
 
-func (s *Service) generateToken(userID string) (string, error) {
+func (s *Service) GenerateToken(userID string) (string, error) {
 	now := time.Now()
 	claims := &UserClaims{
 		UserID: userID,
