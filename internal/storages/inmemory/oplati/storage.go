@@ -22,7 +22,7 @@ func NewStorage() *Storage {
 
 func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 	if ctx.Err() != nil {
-		return nil, errors.New("request canceled")
+		return nil, errors.New("context cancelled")
 	}
 	s.RLock()
 	defer s.RUnlock()
@@ -55,7 +55,7 @@ func (s *Storage) UpdateBalance(ctx context.Context, userId uuid.UUID, amount in
 	return nil
 }
 
-// func (s *Storage) updateBalance(ctx context.Context, userId uuid.UUID, amount int) error {
+// func (s *Storage) updateBalance(ctx context.Context, userIDs uuid.UUID, amount int) error {
 // 	ui, ok := s.db[userId]
 // 	if !ok {
 // 		return errors.New("user id does not exist")
@@ -99,7 +99,7 @@ func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID 
 
 func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInfo, error) {
 	if ctx.Err() != nil {
-		return domain.UserInfo{}, errors.New("request terminated")
+		return domain.UserInfo{}, errors.New("context cancelled")
 	} 
 	s.RLock()
 	defer s.RUnlock()
@@ -114,7 +114,7 @@ func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInf
 
 func (s *Storage) CreateUser(ctx context.Context, userId uuid.UUID) error {
 	if ctx.Err() != nil {
-		return errors.New("request terminated")
+		return errors.New("context cancelled")
 	} 
 	s.Lock()
 	defer s.Unlock()
