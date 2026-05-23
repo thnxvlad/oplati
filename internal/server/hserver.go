@@ -55,11 +55,10 @@ func NewPublicServer(
 		Server:        &httpServer,
 	}
 
-	mux.HandleFunc("PUT /deposit", nil)
-	mux.HandleFunc("PUT /withdraw", nil)
-	mux.HandleFunc("GET /getUser", nil)
-	mux.HandleFunc("PUT /transfer", nil)
-	mux.HandleFunc("POST /newUser", nil)
+	mux.HandleFunc("POST /deposit", server.depositHandler)
+	mux.HandleFunc("POST /withdraw", server.withdrawHandler)
+	mux.HandleFunc("GET /getUser", server.getUserHandler)
+	mux.HandleFunc("POST /transfer", server.transferHandler)
 	mux.HandleFunc("POST /signin", server.signInHandler)
 	mux.HandleFunc("POST /signup", server.signUpHandler)
 
@@ -83,7 +82,7 @@ func NewPrivateServer(
 		Server:        &httpServer,
 	}
 
-	mux.HandleFunc("GET /getUsersInfo", nil)
+	mux.HandleFunc("GET /getUsersInfo", server.getUsersInfoHandler)
 
 	return server
 }
