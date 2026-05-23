@@ -41,7 +41,7 @@ func (s *Service) Deposit(ctx context.Context, userId uuid.UUID, amount int) err
 }
 
 func (s *Service) Withdraw(ctx context.Context, userId uuid.UUID, amount int) error {
-	err := s.db.Withdraw(ctx, userId, -amount)
+	err := s.db.Withdraw(ctx, userId, amount)
 	if err != nil {
 		return err
 	}

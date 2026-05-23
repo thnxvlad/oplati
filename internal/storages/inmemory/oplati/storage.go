@@ -105,7 +105,7 @@ func (s *Storage) Withdraw(ctx context.Context, userID uuid.UUID, amount int) er
 	
 	ui := balanceUpdate{
 		id : userID,
-		amount: amount,
+		amount: -amount,
 	}
 
 	s.updateBalance([]balanceUpdate{ui})
