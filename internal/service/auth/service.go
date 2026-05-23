@@ -56,7 +56,7 @@ func (s *Service) SignIn(ctx context.Context, login, password string) (string, e
 func (s *Service) SignUp(ctx context.Context, login, password string) (string, error) {
 	id := uuid.New()
 
-	err := s.db.SignUp(ctx, login, string(password), id.String())
+	err := s.db.SignUp(ctx, login, password, id.String())
 	if err != nil {
 		return "", err
 	}
@@ -90,7 +90,7 @@ func (s *Service) GetAccountIdFromToken(token string) (string, error) {
 	return parsedClaims.UserID, nil
 }
 
-func (s *Service) GenerateToken(userID string) (string, error) {
+func (s *Service) generateToken(userID string) (string, error) {
 	now := time.Now()
 	claims := &UserClaims{
 		UserID: userID,
