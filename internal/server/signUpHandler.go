@@ -29,7 +29,7 @@ func (s *PublicServer) signUpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.authService.SignUp(req.Login, req.Password)
+	token, err := s.authService.SignUp(r.Context(), req.Login, req.Password)
 	if err != nil {
 		log.Error().Err(err).Str("login", req.Login).Msg("failed to sign up in auth service")
 		http.Error(w, "registration failed", http.StatusInternalServerError)

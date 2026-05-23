@@ -29,7 +29,7 @@ func (s *PublicServer) signInHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.authService.SignIn(req.Login, req.Password)
+	token, err := s.authService.SignIn(r.Context(), req.Login, req.Password)
 	if err != nil {
 		log.Error().Err(err).Str("login", req.Login).Msg("failed to sign in in auth service")
 		http.Error(w, "login failed", http.StatusUnauthorized)

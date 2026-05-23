@@ -10,6 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 	hserver "github.com/thnxvlad/oplati/internal/server"
 	"github.com/thnxvlad/oplati/internal/server/hmiddlewares"
+	"github.com/thnxvlad/oplati/internal/service/auth"
+	"github.com/thnxvlad/oplati/internal/service/oplati"
+	authStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/auth"
+	oplatiStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/oplati"
 )
 
 const (
@@ -26,16 +30,14 @@ func init() {
 }
 
 func main() {
-	//oplatiService := oplati.New(nil)
-	//authService := auth.New(nil, nil)
-	publicServer := hserver.NewPublicServer(nil, publicAddr, hmiddlewares.LoggingMiddleware)
+	oplatiService := oplati.New(oplatiStorage.NewStorage())
+	authService := auth.New(authStorage.New(), oplatiService)
+	publicServer := hserver.NewPublicServer(oplatiService, authService, publicAddr, hmiddlewares.LoggingMiddleware)
 	privateServer := hserver.NewPrivateServer(
-		nil,
-		nil,
+		oplatiService,
 		privateAddr,
 		hmiddlewares.LoggingMiddleware,
-		// ToDo прокинуть реальный auth service вместо nil
-		hmiddlewares.NewAuthMiddleware(nil),
+		hmiddlewares.NewAuthMiddleware(authService),
 	)
 
 	go func() {

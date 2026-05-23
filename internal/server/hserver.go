@@ -21,8 +21,8 @@ type PrivateOplatiService interface {
 }
 
 type AuthService interface {
-	SignIn(login, password string) (string, error)
-	SignUp(login, password string) (string, error)
+	SignIn(ctx context.Context, login, password string) (string, error)
+	SignUp(ctx context.Context, login, password string) (string, error)
 }
 
 type PrivateServer struct {

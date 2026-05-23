@@ -12,11 +12,11 @@ import (
 type AccountIdContextKey struct{}
 
 type AuthService interface {
-	GetAccountIdFromContext(token string) (uuid.UUID, error)
+	GetAccountIdFromToken(token string) (string, error)
 }
 
 func NewAuthMiddleware(
-	authService AuthService, 
+	authService AuthService,
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +27,7 @@ func NewAuthMiddleware(
 			}
 
 			token = strings.TrimPrefix(token, "Bearer ")
-			accountId, err := authService.GetAccountIdFromContext(token)
+			accountId, err := authService.GetAccountIdFromToken(token)
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
