@@ -16,7 +16,7 @@ type SignUpResponse struct {
 	Token string `json:"token"`
 }
 
-func (s *PrivateServer) signUpHandler(w http.ResponseWriter, r *http.Request) {
+func (s *PublicServer) signUpHandler(w http.ResponseWriter, r *http.Request) {
 	req := SignUpRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

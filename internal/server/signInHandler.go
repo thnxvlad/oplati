@@ -16,7 +16,7 @@ type SignInResponse struct {
 	Token string `json:"token"`
 }
 
-func (s *PrivateServer) signInHandler(w http.ResponseWriter, r *http.Request) {
+func (s *PublicServer) signInHandler(w http.ResponseWriter, r *http.Request) {
 	req := SignInRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

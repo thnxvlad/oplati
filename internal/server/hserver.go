@@ -27,27 +27,22 @@ type AuthService interface {
 
 type PrivateServer struct {
 	oplatiService PrivateOplatiService
-	authService   AuthService
 	*http.Server
 }
 
 type PublicServer struct {
 	oplatiService PublicOplatiService
+	authService   AuthService
 	*http.Server
 }
 
 func NewPublicServer(
 	oplatiService PublicOplatiService,
+	authService AuthService,
 	addr string,
 	mws ...func(next http.Handler) http.Handler,
 ) *PublicServer {
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("PUT /deposit", nil)
-	mux.HandleFunc("PUT /withdraw", nil)
-	mux.HandleFunc("GET /getUser", nil)
-	mux.HandleFunc("PUT /transfer", nil)
-	mux.HandleFunc("POST /newUser", nil)
 
 	httpServer := http.Server{
 		Addr:    addr,
@@ -56,20 +51,27 @@ func NewPublicServer(
 
 	server := &PublicServer{
 		oplatiService: oplatiService,
+		authService:   authService,
 		Server:        &httpServer,
 	}
+
+	mux.HandleFunc("PUT /deposit", nil)
+	mux.HandleFunc("PUT /withdraw", nil)
+	mux.HandleFunc("GET /getUser", nil)
+	mux.HandleFunc("PUT /transfer", nil)
+	mux.HandleFunc("POST /newUser", nil)
+	mux.HandleFunc("POST /signin", server.signInHandler)
+	mux.HandleFunc("POST /signup", server.signUpHandler)
 
 	return server
 }
 
 func NewPrivateServer(
 	oplatiService PrivateOplatiService,
-	authService AuthService,
 	addr string,
 	mws ...func(next http.Handler) http.Handler,
 ) *PrivateServer {
 	mux := http.NewServeMux()
-
 
 	httpServer := http.Server{
 		Addr:    addr,
@@ -82,8 +84,6 @@ func NewPrivateServer(
 	}
 
 	mux.HandleFunc("GET /getUsersInfo", nil)
-	mux.HandleFunc("POST /signin", server.signInHandler)
-	mux.HandleFunc("POST /signup", server.signUpHandler)
 
 	return server
 }
