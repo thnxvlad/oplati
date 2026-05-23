@@ -27,17 +27,18 @@ type AuthService interface {
 
 type PrivateServer struct {
 	oplatiService PrivateOplatiService
-	authService   AuthService
 	*http.Server
 }
 
 type PublicServer struct {
 	oplatiService PublicOplatiService
+	authService   AuthService
 	*http.Server
 }
 
 func NewPublicServer(
 	oplatiService PublicOplatiService,
+	authService AuthService,
 	addr string,
 	mws ...func(next http.Handler) http.Handler,
 ) *PublicServer {
@@ -50,6 +51,7 @@ func NewPublicServer(
 
 	server := &PublicServer{
 		oplatiService: oplatiService,
+		authService:   authService,
 		Server:        &httpServer,
 	}
 
@@ -57,14 +59,14 @@ func NewPublicServer(
 	mux.HandleFunc("POST /withdraw", server.withdrawHandler)
 	mux.HandleFunc("GET /getUser", server.getUserHandler)
 	mux.HandleFunc("POST /transfer", server.transferHandler)
-	mux.HandleFunc("POST /newUser", nil)
+	mux.HandleFunc("POST /signin", server.signInHandler)
+	mux.HandleFunc("POST /signup", server.signUpHandler)
 
 	return server
 }
 
 func NewPrivateServer(
 	oplatiService PrivateOplatiService,
-	authService AuthService,
 	addr string,
 	mws ...func(next http.Handler) http.Handler,
 ) *PrivateServer {
