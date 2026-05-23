@@ -53,10 +53,10 @@ func NewPublicServer(
 		Server:        &httpServer,
 	}
 
-	mux.HandleFunc("PUT /deposit", server.depositHandler)
-	mux.HandleFunc("PUT /withdraw", server.withdrawHandler)
+	mux.HandleFunc("POST /deposit", server.depositHandler)
+	mux.HandleFunc("POST /withdraw", server.withdrawHandler)
 	mux.HandleFunc("GET /getUser", server.getUserHandler)
-	mux.HandleFunc("PUT /transfer", server.transferHandler)
+	mux.HandleFunc("POST /transfer", server.transferHandler)
 	mux.HandleFunc("POST /newUser", nil)
 
 	return server
