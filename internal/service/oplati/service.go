@@ -22,7 +22,8 @@ type OplatiDatabase interface {
 	GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInfo, error)
 	GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error)
 	Transfer(ctx context.Context, userIDFirst uuid.UUID, userIDSecond uuid.UUID, amount int) error
-	UpdateBalance(ctx context.Context, userId uuid.UUID, amount int) error
+	Deposit(ctx context.Context, userId uuid.UUID, amount int) error
+	Withdraw(ctx context.Context, userId uuid.UUID, amount int) error
 }
 
 func (s *Service) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
@@ -31,7 +32,7 @@ func (s *Service) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 }
 
 func (s *Service) Deposit(ctx context.Context, userId uuid.UUID, amount int) error {
-	err := s.db.UpdateBalance(ctx, userId, amount)
+	err := s.db.Deposit(ctx, userId, amount)
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func (s *Service) Deposit(ctx context.Context, userId uuid.UUID, amount int) err
 }
 
 func (s *Service) Withdraw(ctx context.Context, userId uuid.UUID, amount int) error {
-	err := s.db.UpdateBalance(ctx, userId, -amount)
+	err := s.db.Withdraw(ctx, userId, -amount)
 	if err != nil {
 		return err
 	}

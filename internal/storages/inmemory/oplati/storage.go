@@ -3,6 +3,7 @@ package oplati
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -33,66 +34,81 @@ func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 
 	return users, nil
 }
+type balanceUpdate struct {
+	id uuid.UUID
+  	amount int
+}
 
-func (s *Storage) UpdateBalance(ctx context.Context, userId uuid.UUID, amount int) error {
-	if ctx.Err() != nil {
-		return errors.New("context cancelled")
-	}
+func (s *Storage) updateBalance(userIDs []balanceUpdate) error {
+	users := make([]domain.UserInfo, len(userIDs))
+	var ok bool 
 	s.Lock()
 	defer s.Unlock()
+	for i, value := range userIDs {
+		users[i], ok = s.db[value.id]
+		if !ok {
+			return fmt.Errorf("user %s does not exist", value.id.String())
+		}
 
-	ui, ok := s.db[userId]
-	if !ok {
-		return errors.New("user id does not exist")
+		users[i].Balance += value.amount
+		if users[i].Balance < 0 {
+			return errors.New("not enough funds")
+		}
 	}
-
-	ui.Balance += amount
-	if ui.Balance < 0 {
-		return errors.New("not enough money")
+	for _, value := range users{
+		s.db[value.Id] = value
 	}
-	s.db[userId] = ui
+	
 
 	return nil
 }
-
-// func (s *Storage) updateBalance(ctx context.Context, userIDs uuid.UUID, amount int) error {
-// 	ui, ok := s.db[userId]
-// 	if !ok {
-// 		return errors.New("user id does not exist")
-// 	}
-// 	ui.Balance += amount
-// 	if ui.Balance < 0 {
-// 		return errors.New("not enough money")
-// 	}
-// 	s.db[userId] = ui
-
-// 	return nil
-// }
 
 func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) error {
 	if ctx.Err() != nil {
 		return errors.New("context cancelled")
 	} 
-	s.Lock()
-	defer s.Unlock()
-
-	si, ok := s.db[senderID]
-	if !ok {
-		return errors.New("sender id does not exist")
-	}
-	ri, ok := s.db[recipientID]
-	if !ok {
-		return errors.New("recipient id does not exist")
+	
+	si := balanceUpdate{
+		id : senderID,
+		amount: amount,
 	}
 
-	si.Balance -= amount
-	if si.Balance < 0 {
-		return errors.New("not enough funds")
+	ri := balanceUpdate{
+		id : recipientID,
+		amount: -amount,
 	}
-	s.db[senderID] = si
 
-	ri.Balance += amount
-	s.db[recipientID] = ri
+	s.updateBalance([]balanceUpdate{si,ri})
+
+	return nil
+}
+
+func (s *Storage) Deposit(ctx context.Context, userID uuid.UUID, amount int) error {
+	if ctx.Err() != nil {
+		return errors.New("context cancelled")
+	} 
+	
+	ui := balanceUpdate{
+		id : userID,
+		amount: amount,
+	}
+
+	s.updateBalance([]balanceUpdate{ui})
+
+	return nil
+}
+
+func (s *Storage) Withdraw(ctx context.Context, userID uuid.UUID, amount int) error {
+	if ctx.Err() != nil {
+		return errors.New("context cancelled")
+	} 
+	
+	ui := balanceUpdate{
+		id : userID,
+		amount: amount,
+	}
+
+	s.updateBalance([]balanceUpdate{ui})
 
 	return nil
 }
