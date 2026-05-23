@@ -70,9 +70,6 @@ func NewPrivateServer(
 ) *PrivateServer {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /getUsersInfo", nil)
-	mux.HandleFunc("POST /signin", nil)
-	mux.HandleFunc("POST /signup", nil)
 
 	httpServer := http.Server{
 		Addr:    addr,
@@ -83,6 +80,10 @@ func NewPrivateServer(
 		oplatiService: oplatiService,
 		Server:        &httpServer,
 	}
+
+	mux.HandleFunc("GET /getUsersInfo", nil)
+	mux.HandleFunc("POST /signin", server.signInHandler)
+	mux.HandleFunc("POST /signup", server.signUpHandler)
 
 	return server
 }

@@ -50,7 +50,7 @@ func (s *Service) SignIn(ctx context.Context, login, password string) (string, e
 		return "", errors.New("invalid password or login")
 	}
 
-	return s.GenerateToken(id)
+	return s.generateToken(id)
 }
 
 func (s *Service) SignUp(ctx context.Context, login, password string) (string, error) {
