@@ -76,6 +76,9 @@ func (s *Service) SignUp(ctx context.Context, login, password string) (string, e
 
 func (s *Service) GetAccountIdFromToken(token string) (string, error) {
 	claims, err := jwt.ParseWithClaims(token, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
 		return []byte(s.jwtSecret), nil
 	})
 	if err != nil {
@@ -102,6 +105,6 @@ func (s *Service) generateToken(userID string) (string, error) {
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))
 }
