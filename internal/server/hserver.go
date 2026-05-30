@@ -23,6 +23,7 @@ type PrivateOplatiService interface {
 type AuthService interface {
 	SignIn(ctx context.Context, login, password string) (string, error)
 	SignUp(ctx context.Context, login, password string) (string, error)
+	GetAccountIdFromToken(token string) (string, error)
 }
 
 type PrivateServer struct {
@@ -55,9 +56,11 @@ func NewPublicServer(
 		Server:        &httpServer,
 	}
 
+	authMw := hmiddlewares.NewAuthMiddleware(authService)
+
 	mux.HandleFunc("POST /deposit", server.depositHandler)
 	mux.HandleFunc("POST /withdraw", server.withdrawHandler)
-	mux.HandleFunc("GET /getUser", server.getUserHandler)
+	mux.Handle("GET /getUser", authMw(http.HandlerFunc(server.getUserHandler)))
 	mux.HandleFunc("POST /transfer", server.transferHandler)
 	mux.HandleFunc("POST /signin", server.signInHandler)
 	mux.HandleFunc("POST /signup", server.signUpHandler)
