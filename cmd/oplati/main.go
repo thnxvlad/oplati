@@ -14,7 +14,6 @@ import (
 	"github.com/thnxvlad/oplati/internal/service/auth"
 	"github.com/thnxvlad/oplati/internal/service/oplati"
 	authStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/auth"
-	oplatiStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/oplati"
 	postgresOplatiStorage "github.com/thnxvlad/oplati/internal/storages/postgres/oplati"
 )
 
@@ -39,19 +38,19 @@ func main() {
 	}
 	defer pool.Close()
 
-	oplatiService := oplati.New(oplatiStorage.NewStorage())
-
-	// создаем сервис для работы с oplati в postgres для авторизации,
-	// так как для неё нужна реализация только одного метода CreateUser
-	// когда допишем остальные методы, то будет только один opaltiService для всех интерфейсов
-	authOplatiService := oplati.New(postgresOplatiStorage.New(pool))
-	authService := auth.New(authStorage.New(), authOplatiService)
-	publicServer := hserver.NewPublicServer(oplatiService, authService, publicAddr, hmiddlewares.LoggingMiddleware)
+	oplatiService := oplati.New(postgresOplatiStorage.New(pool))
+	authService := auth.New(authStorage.New(), oplatiService)
+	
+	publicServer := hserver.NewPublicServer(
+		oplatiService,
+		authService,
+		publicAddr,
+		hmiddlewares.LoggingMiddleware,
+	)
 	privateServer := hserver.NewPrivateServer(
 		oplatiService,
 		privateAddr,
 		hmiddlewares.LoggingMiddleware,
-		hmiddlewares.NewAuthMiddleware(authService),
 	)
 
 	go func() {
