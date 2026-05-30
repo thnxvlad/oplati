@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Oplati: launch",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/oplati",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "DATABASE_URL": "postgres://oplati:oplati@localhost:5432/oplati?sslmode=disable",
+        "JWT_SECRET": "dev-debug-secret"
+      }
+    }
+  ]
+}

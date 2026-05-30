@@ -19,9 +19,8 @@ import (
 )
 
 const (
-	publicAddr         = ":8082"
-	privateAddr        = ":8081"
-	defaultDatabaseURL = "postgres://oplati:oplati@localhost:5432/oplati?sslmode=disable"
+	publicAddr  = ":8082"
+	privateAddr = ":8081"
 )
 
 func init() {
@@ -33,7 +32,12 @@ func init() {
 }
 
 func main() {
-	pool, err := pgxpool.New(context.Background(), defaultDatabaseURL)
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal().Msg("DATABASE_URL is required")
+	}
+
+	pool, err := pgxpool.New(context.Background(), databaseURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to postgres")
 	}
@@ -46,7 +50,13 @@ func main() {
 	// когда допишем остальные методы, то будет только один opaltiService для всех интерфейсов
 	authOplatiService := oplati.New(postgresOplatiStorage.New(pool))
 	authService := auth.New(authStorage.New(), authOplatiService)
-	publicServer := hserver.NewPublicServer(oplatiService, authService, publicAddr, hmiddlewares.LoggingMiddleware)
+	publicServer := hserver.NewPublicServer(
+		oplatiService,
+		authService,
+		publicAddr,
+		hmiddlewares.LoggingMiddleware,
+		hmiddlewares.NewAuthMiddleware(authService),
+	)
 	privateServer := hserver.NewPrivateServer(
 		oplatiService,
 		privateAddr,
