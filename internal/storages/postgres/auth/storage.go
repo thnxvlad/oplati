@@ -40,15 +40,14 @@ func (s *Storage) SignUp(ctx context.Context, login, password, userID string) er
 	return nil
 }
 
-func (s *Storage) GetUserByLogin(ctx context.Context, login string) (userID, passwordHash string, err error) {
+func (s *Storage) GetUserByLogin(ctx context.Context, login string) (returnedUserID, returnedHash string, err error) {
 	row := s.db.QueryRow(ctx, getUserByLoginQuery, login)
-	var returnedUserID, returnedHash string
 
 	if err1 := row.Scan(&returnedUserID, &returnedHash); err1 != nil {
 		if errors.Is(err1, pgx.ErrNoRows) {
-			return returnedUserID, returnedHash, errors.New("user does not exist")
+			return "", "", errors.New("user does not exist")
 		}
-		return returnedUserID, returnedHash, fmt.Errorf("Scan: %w", err1)
+		return "", "", fmt.Errorf("Scan: %w", err1)
 	}
 	return returnedUserID, returnedHash, nil
 }
