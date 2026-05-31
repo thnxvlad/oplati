@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Storage struct {
@@ -30,12 +29,7 @@ WHERE login = $1
 `
 
 func (s *Storage) SignUp(ctx context.Context, login, password, userID string) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	cmdTag, err := s.db.Exec(ctx, signUpQuery, login, hashedPassword, userID)
+	cmdTag, err := s.db.Exec(ctx, signUpQuery, login, password, userID)
 	if err != nil {
 		return err
 	}

@@ -55,8 +55,12 @@ func (s *Service) SignIn(ctx context.Context, login, password string) (string, e
 
 func (s *Service) SignUp(ctx context.Context, login, password string) (string, error) {
 	id := uuid.New()
-
-	err := s.db.SignUp(ctx, login, password, id.String())
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	hashedPassword := string(hash)
+	err = s.db.SignUp(ctx, login, hashedPassword, id.String())
 	if err != nil {
 		return "", err
 	}
