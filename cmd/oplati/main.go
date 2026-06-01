@@ -13,15 +13,14 @@ import (
 	"github.com/thnxvlad/oplati/internal/server/hmiddlewares"
 	"github.com/thnxvlad/oplati/internal/service/auth"
 	"github.com/thnxvlad/oplati/internal/service/oplati"
-	authStorage "github.com/thnxvlad/oplati/internal/storages/postgres/auth"
+	authStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/auth"
 	oplatiStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/oplati"
 	postgresOplatiStorage "github.com/thnxvlad/oplati/internal/storages/postgres/oplati"
 )
 
 const (
-	publicAddr         = ":8082"
-	privateAddr        = ":8081"
-	defaultDatabaseURL = "postgres://oplati:oplati@localhost:5432/oplati?sslmode=disable"
+	publicAddr  = ":8082"
+	privateAddr = ":8081"
 )
 
 func init() {
@@ -33,7 +32,12 @@ func init() {
 }
 
 func main() {
-	pool, err := pgxpool.New(context.Background(), defaultDatabaseURL)
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal().Msg("DATABASE_URL is required")
+	}
+
+	pool, err := pgxpool.New(context.Background(), databaseURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to postgres")
 	}
@@ -45,8 +49,14 @@ func main() {
 	// так как для неё нужна реализация только одного метода CreateUser
 	// когда допишем остальные методы, то будет только один opaltiService для всех интерфейсов
 	authOplatiService := oplati.New(postgresOplatiStorage.New(pool))
-	authService := auth.New(authStorage.New(pool), authOplatiService)
-	publicServer := hserver.NewPublicServer(oplatiService, authService, publicAddr, hmiddlewares.LoggingMiddleware)
+	authService := auth.New(authStorage.New(), authOplatiService)
+	publicServer := hserver.NewPublicServer(
+		oplatiService,
+		authService,
+		publicAddr,
+		hmiddlewares.LoggingMiddleware,
+		hmiddlewares.NewAuthMiddleware(authService),
+	)
 	privateServer := hserver.NewPrivateServer(
 		oplatiService,
 		privateAddr,
