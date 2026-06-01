@@ -3,7 +3,6 @@ package hmiddlewares
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
