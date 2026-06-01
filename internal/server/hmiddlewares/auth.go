@@ -3,7 +3,6 @@ package hmiddlewares
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -21,7 +20,6 @@ func NewAuthMiddleware(
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("authMiddlware")
 			token := r.Header.Get("Authorization")
 			if token == "" {
 				w.WriteHeader(http.StatusUnauthorized)
