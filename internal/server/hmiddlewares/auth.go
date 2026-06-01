@@ -39,10 +39,10 @@ func NewAuthMiddleware(
 }
 
 func GetAccountIdFromContext(ctx context.Context) (uuid.UUID, error) {
-	accountId, ok := ctx.Value(AccountIdContextKey{}).(string)
+	accountIdStr, ok := ctx.Value(AccountIdContextKey{}).(string)
 	if !ok {
 		return uuid.UUID{}, errors.New("account id not found in context")
 	}
 
-	return uuid.Parse(accountId)
+	return uuid.Parse(accountIdStr)
 }
