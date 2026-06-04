@@ -34,14 +34,15 @@ func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 
 	return users, nil
 }
+
 type balanceUpdate struct {
-	id uuid.UUID
-  	amount int
+	id     uuid.UUID
+	amount int
 }
 
 func (s *Storage) updateBalance(userIDs []balanceUpdate) error {
 	users := make([]domain.UserInfo, len(userIDs))
-	var ok bool 
+	var ok bool
 	s.Lock()
 	defer s.Unlock()
 	for i, value := range userIDs {
@@ -55,10 +56,9 @@ func (s *Storage) updateBalance(userIDs []balanceUpdate) error {
 			return errors.New("not enough funds")
 		}
 	}
-	for _, value := range users{
+	for _, value := range users {
 		s.db[value.Id] = value
 	}
-	
 
 	return nil
 }
@@ -66,19 +66,19 @@ func (s *Storage) updateBalance(userIDs []balanceUpdate) error {
 func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID uuid.UUID, amount int) error {
 	if ctx.Err() != nil {
 		return errors.New("context cancelled")
-	} 
-	
+	}
+
 	si := balanceUpdate{
-		id : senderID,
+		id:     senderID,
 		amount: amount,
 	}
 
 	ri := balanceUpdate{
-		id : recipientID,
+		id:     recipientID,
 		amount: -amount,
 	}
 
-	s.updateBalance([]balanceUpdate{si,ri})
+	s.updateBalance([]balanceUpdate{si, ri})
 
 	return nil
 }
@@ -86,10 +86,10 @@ func (s *Storage) Transfer(ctx context.Context, senderID uuid.UUID, recipientID 
 func (s *Storage) Deposit(ctx context.Context, userID uuid.UUID, amount int) error {
 	if ctx.Err() != nil {
 		return errors.New("context cancelled")
-	} 
-	
+	}
+
 	ui := balanceUpdate{
-		id : userID,
+		id:     userID,
 		amount: amount,
 	}
 
@@ -101,10 +101,10 @@ func (s *Storage) Deposit(ctx context.Context, userID uuid.UUID, amount int) err
 func (s *Storage) Withdraw(ctx context.Context, userID uuid.UUID, amount int) error {
 	if ctx.Err() != nil {
 		return errors.New("context cancelled")
-	} 
-	
+	}
+
 	ui := balanceUpdate{
-		id : userID,
+		id:     userID,
 		amount: -amount,
 	}
 
@@ -116,7 +116,7 @@ func (s *Storage) Withdraw(ctx context.Context, userID uuid.UUID, amount int) er
 func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInfo, error) {
 	if ctx.Err() != nil {
 		return domain.UserInfo{}, errors.New("context cancelled")
-	} 
+	}
 	s.RLock()
 	defer s.RUnlock()
 
@@ -131,7 +131,7 @@ func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInf
 func (s *Storage) CreateUser(ctx context.Context, userId uuid.UUID) error {
 	if ctx.Err() != nil {
 		return errors.New("context cancelled")
-	} 
+	}
 	s.Lock()
 	defer s.Unlock()
 
@@ -140,11 +140,10 @@ func (s *Storage) CreateUser(ctx context.Context, userId uuid.UUID) error {
 	}
 
 	ui := domain.UserInfo{
-		Id:       userId,
-		Balance:  0,
+		Id:      userId,
+		Balance: 0,
 	}
 
 	s.db[ui.Id] = ui
 	return nil
 }
-
