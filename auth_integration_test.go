@@ -58,3 +58,30 @@ func TestSignUp_Integration(t *testing.T) {
 		t.Error("expected error cause it's a duplicate")
 	}
 }
+
+func TestGetUserByLogin_Integration(t *testing.T) {
+	setupTest(t)
+
+	storage := pgStorage.New(testPool)
+	service := auth.New(storage, &mockOplati{})
+
+	ctx := context.Background()
+	login := "mishanya_test"
+	password := "mishanya's pswrd"
+	token, _ := service.SignUp(ctx, login, password)
+
+	testID, err := service.GetAccountIdFromToken(token)
+
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	realID, _, err := storage.GetUserByLogin(ctx, login)
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	if realID != testID {
+		t.Error("test id is not equal real")
+	}
+}
