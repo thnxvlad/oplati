@@ -101,3 +101,51 @@ func TestSignUp(t *testing.T) {
 		})
 	}
 }
+
+func TestGetUserByLogin(t *testing.T) {
+	os.Setenv("JWT_SECRET", "test_sercet")
+
+	tests := []struct {
+		name     string
+		login    string
+		password string
+		wantErr  bool
+	}{
+		{
+			name:     "mishanya_test",
+			login:    "mik33",
+			password: "mostpowerfulpswrd",
+			wantErr:  false,
+		},
+		{
+			name:     "andre_test",
+			login:    "andr",
+			password: "mostp649884648owerfulpswrd",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			db := &mockDB{users: make(map[string]struct {
+				id   string
+				hash string
+			})}
+			oplati := &mockOplati{}
+			service := auth.New(db, oplati)
+
+			token, _ := service.SignUp(context.Background(), tt.login, tt.password)
+
+			testID, err := service.GetAccountIdFromToken(token)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SignUp() error = %v, wanted error = %v", err, tt.wantErr)
+				return
+			}
+
+			if testID != db.users[tt.login].id {
+				t.Error("test id not equal real id")
+			}
+		})
+	}
+}
