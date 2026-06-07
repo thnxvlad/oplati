@@ -44,9 +44,6 @@ func main() {
 
 	oplatiService := oplati.New(oplatiStorage.New(pool))
 
-	// создаем сервис для работы с oplati в postgres для авторизации,
-	// так как для неё нужна реализация только одного метода CreateUser
-	// когда допишем остальные методы, то будет только один opaltiService для всех интерфейсов
 	authOplatiService := oplati.New(oplatiStorage.New(pool))
 	authService := auth.New(authStorage.New(pool), authOplatiService)
 	publicServer := hserver.NewPublicServer(

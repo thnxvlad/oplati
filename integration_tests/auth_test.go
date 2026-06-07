@@ -1,37 +1,14 @@
-package main
+package auth
 
 import (
 	"context"
-	"errors"
 	"os"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/thnxvlad/oplati/internal/service/auth"
+	inmStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/auth"
 )
-
-type mockDB struct {
-	users map[string]struct {
-		id   string
-		hash string
-	}
-}
-
-func (m *mockDB) GetUserByLogin(ctx context.Context, login string) (string, string, error) {
-	u, ok := m.users[login]
-	if !ok {
-		return "", "", errors.New("not found")
-	}
-	return u.id, u.hash, nil
-}
-
-func (m *mockDB) SignUp(ctx context.Context, login, password, userID string) error {
-	m.users[login] = struct {
-		id   string
-		hash string
-	}{id: userID, hash: password}
-	return nil
-}
 
 type mockOplati struct {
 	calledWithID uuid.UUID
@@ -67,11 +44,7 @@ func TestSignUp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			db := &mockDB{users: make(map[string]struct {
-				id   string
-				hash string
-			})}
+			db := inmStorage.New()
 			oplati := &mockOplati{}
 			service := auth.New(db, oplati)
 
@@ -86,12 +59,12 @@ func TestSignUp(t *testing.T) {
 				t.Error("expected token, get empty string")
 			}
 
-			userInDB, ok := db.users[tt.login]
-			if !ok {
+			_, hashedpassword, err := db.GetUserByLogin(context.Background(), tt.login)
+			if err != nil {
 				t.Error("user is not saved in db")
 			}
 
-			if userInDB.hash == tt.password {
+			if hashedpassword == tt.password {
 				t.Error("password is not hashed")
 			}
 
@@ -128,10 +101,7 @@ func TestGetUserByLogin(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			db := &mockDB{users: make(map[string]struct {
-				id   string
-				hash string
-			})}
+			db := inmStorage.New()
 			oplati := &mockOplati{}
 			service := auth.New(db, oplati)
 
@@ -143,8 +113,13 @@ func TestGetUserByLogin(t *testing.T) {
 				return
 			}
 
-			if testID != db.users[tt.login].id {
-				t.Error("test id not equal real id")
+			realID, _, err := db.GetUserByLogin(context.Background(), tt.login)
+			if err != nil {
+				t.Error("get user error")
+			}
+
+			if realID != testID {
+				t.Error("real id doesn't equal to test id")
 			}
 		})
 	}
