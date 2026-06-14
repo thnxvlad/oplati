@@ -1,4 +1,4 @@
-package auth
+package integration_test
 
 import (
 	"context"
@@ -37,6 +37,10 @@ func TestMain(m *testing.M) {
 					WithStartupTimeout(30*time.Second)),
 		)
 
+		if err != nil {
+			log.Fatalf("failed to run: %s", err)
+		}
+
 		databaseURL, err = pgContainer.ConnectionString(ctx, "sslmode-disable")
 		if err != nil {
 			log.Fatalf("failed to get connection string: %s", err)
@@ -70,15 +74,6 @@ func ensureSchema(ctx context.Context, pool *pgxpool.Pool) {
 		log.Fatalf("failed to apply schema: %v", err)
 	}
 }
-
-func setupTest(t *testing.T) {
-	t.Helper()
-	_, err := testPool.Exec(context.Background(), "TRUNCATE TABLE accounts, users CASCADE")
-	if err != nil {
-		t.Fatalf("failed to truncate tables: %v", err)
-	}
-}
-
 func TestCreateUser_Integration(t *testing.T) {
 	storage := postgresOplatiStorage.New(testPool)
 	service := oplati.New(storage)
@@ -116,7 +111,10 @@ func TestDeposit_Integration(t *testing.T) {
 	}
 
 	user, err := service.GetUser(context.Background(), id)
-
+	if err != nil {
+		t.Fatal("user does not exist")
+	}
+	
 	if user.Balance != 30 {
 		t.Fatalf("user balance must be 30, got %d", user.Balance)
 	}

@@ -1,4 +1,4 @@
-package oplati
+package oplati_test
 
 import (
 	"context"
