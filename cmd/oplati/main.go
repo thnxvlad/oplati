@@ -13,8 +13,7 @@ import (
 	"github.com/thnxvlad/oplati/internal/server/hmiddlewares"
 	"github.com/thnxvlad/oplati/internal/service/auth"
 	"github.com/thnxvlad/oplati/internal/service/oplati"
-	authStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/auth"
-	oplatiStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/oplati"
+	authStorage "github.com/thnxvlad/oplati/internal/storages/postgres/auth"
 	postgresOplatiStorage "github.com/thnxvlad/oplati/internal/storages/postgres/oplati"
 )
 
@@ -34,7 +33,8 @@ func init() {
 func main() {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		log.Fatal().Msg("DATABASE_URL is required")
+		databaseURL = "postgres://oplati:oplati@localhost:5432/oplati"
+		//log.Fatal().Msg("DATABASE_URL is required")
 	}
 
 	pool, err := pgxpool.New(context.Background(), databaseURL)
@@ -43,18 +43,17 @@ func main() {
 	}
 	defer pool.Close()
 
-	oplatiService := oplati.New(oplatiStorage.NewStorage())
 	authOplatiService := oplati.New(postgresOplatiStorage.New(pool))
-	authService := auth.New(authStorage.New(), authOplatiService)
+	authService := auth.New(authStorage.New(pool), authOplatiService)
 	publicServer := hserver.NewPublicServer(
-		oplatiService,
+		authOplatiService,
 		authService,
 		publicAddr,
 		hmiddlewares.LoggingMiddleware,
 		hmiddlewares.NewAuthMiddleware(authService),
 	)
 	privateServer := hserver.NewPrivateServer(
-		oplatiService,
+		authOplatiService,
 		privateAddr,
 		hmiddlewares.LoggingMiddleware,
 	)
