@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Storage struct {
@@ -31,12 +29,7 @@ func (s *Storage) SignUp(ctx context.Context, login, password, userID string) er
 		return errors.New("login already exists")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	s.loginData[login] = string(hashedPassword)
+	s.loginData[login] = string(password)
 	s.accountData[login] = userID
 
 	return nil

@@ -47,7 +47,7 @@ func (s *Service) SignIn(ctx context.Context, login, password string) (string, e
 
 	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
 	if err != nil {
-		return "", errors.New("invalid password or login")
+		return "", errors.New("password hashes not equal")
 	}
 
 	return s.generateToken(id)
