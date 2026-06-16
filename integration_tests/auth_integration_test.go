@@ -1,11 +1,10 @@
-package auth
+package integration_tests
 
 import (
 	"context"
 	"log"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
@@ -20,6 +19,7 @@ var testPool *pgxpool.Pool
 
 func TestMain(m *testing.M) {
 	var err error
+	os.Setenv("JWT_SECRET", "test_secret_key")
 	ctx := context.Background()
 	databaseURL = os.Getenv("DATABASE_URL")
 	var pgContainer *postgres.PostgresContainer
@@ -31,12 +31,13 @@ func TestMain(m *testing.M) {
 			postgres.WithUsername("oplati"),
 			postgres.WithPassword("oplati"),
 			testcontainers.WithWaitStrategy(
-				wait.ForLog("db is ready!").
-					WithOccurrence(2).
-					WithStartupTimeout(30*time.Second)),
+			wait.ForLog("database system is ready to accept connections").WithOccurrence(2)),
 		)
+		if err != nil {
+			log.Fatalf("failed to make container, %s: ", err)
+		}
 
-		databaseURL, err = pgContainer.ConnectionString(ctx, "sslmode-disable")
+		databaseURL, err = pgContainer.ConnectionString(ctx, "sslmode=disable")
 		if err != nil {
 			log.Fatalf("failed to get connection string: %s", err)
 		}

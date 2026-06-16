@@ -1,4 +1,4 @@
-package auth
+package integration_tests
 
 import (
 	"context"
@@ -15,7 +15,7 @@ type mockOplati struct {
 }
 
 func (m *mockOplati) CreateUser(ctx context.Context, userID uuid.UUID) error {
-	m.calledWithID = userID // Сохраняем ID, чтобы проверить его в тесте
+	m.calledWithID = userID
 	return nil
 }
 
