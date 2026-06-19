@@ -43,7 +43,7 @@ func (s *Storage) GetUser(ctx context.Context, userId uuid.UUID) (domain.UserInf
 		WHERE id = $1
 	`, userId)
 	ui := domain.UserInfo{}
-	if err := row.Scan(&ui.Id, &ui.Balance); err != nil{
+	if err := row.Scan(&ui.Id, &ui.Balance); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.UserInfo{}, errors.New("user does not exist")
 		}
@@ -74,50 +74,56 @@ func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 }
 
 func (s *Storage) Transfer(ctx context.Context, userFrom, userTo uuid.UUID, amount int) error {
-	// tx, err := s.db.BeginTx(ctx, pgx.TxOptions{
-	// 	IsoLevel: pgx.ReadCommitted,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("BeginTx: %w", err)
-	// }
-	// defer func(){
-	// 	_ = tx.Rollback(ctx) 
-	// }()
+	if amount <= 0 {
+		return fmt.Errorf("amount must be positive")
+	}
+	if userFrom == userTo {
+		return fmt.Errorf("cannot transfer to self")
+	}
 
-	// row := tx.QueryRow(ctx, `
-	// 		SELECT  users
-	// 		SET balance = balance - $1
-	// 		WHERE id = $2
-	// 	`, amount, userFrom)
+	firstID, secondID := userFrom, userTo
+	if userFrom.String() > userTo.String() {
+		firstID, secondID = userTo, userFrom
+	}
 
-	// if userFrom.String() < userTo.String() {
-	// 	row := tx.QueryRow(ctx, `
-	// 		UPDATE users
-	// 		SET balance = balance - $1
-	// 		WHERE id = $2
-	// 		RETURNING balance
-	// 	`, amount, userFrom)
-	// 	var balance int
-	// 	if err := row.Scan(&balance); err != nil {
-	// 		if errors.Is(err, pgx.ErrNoRows){
-	// 			return fmt.Errorf("userFrom does not exist")
-	// 		}
-	// 		return err
-	// 	}
-	// 	if balance < 0 {
-	// 		return fmt.Errorf("not enough founds")
-	// 	}
-	// 	tmdTag, err := tx.Exec(ctx, `
-	// 		UPDATE users
-	// 		SET balance = balance + $1
-	// 		WHERE id = $2
-	// 	`, amount, userTo)
-	// 	if tmdTag.RowsAffected()
-	// }
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 
+	_, err = tx.Exec(ctx, `
+        SELECT id FROM users 
+        WHERE id IN ($1, $2) 
+        ORDER BY id 
+        FOR UPDATE`,
+		firstID, secondID)
+	if err != nil {
+		return fmt.Errorf("failed to lock rows: %w", err)
+	}
 
-	
-	return errors.New("not implemented")
+	var balance int
+	err = tx.QueryRow(ctx, "SELECT balance FROM users WHERE id = $1", userFrom).Scan(&balance)
+	if err != nil {
+		return err
+	}
+
+	if balance < amount {
+		return fmt.Errorf("not enough funds")
+	}
+
+	// 4. Выполняем переводы
+	_, err = tx.Exec(ctx, "UPDATE users SET balance = balance - $1 WHERE id = $2", amount, userFrom)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, "UPDATE users SET balance = balance + $1 WHERE id = $2", amount, userTo)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (s *Storage) Deposit(ctx context.Context, userId uuid.UUID, amount int) error {
