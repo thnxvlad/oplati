@@ -81,12 +81,7 @@ func (s *Storage) Transfer(ctx context.Context, userFrom, userTo uuid.UUID, amou
 		return fmt.Errorf("cannot transfer to self")
 	}
 
-	firstID, secondID := userFrom, userTo
-	if userFrom.String() > userTo.String() {
-		firstID, secondID = userTo, userFrom
-	}
-
-	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return err
 	}
@@ -97,7 +92,7 @@ func (s *Storage) Transfer(ctx context.Context, userFrom, userTo uuid.UUID, amou
 			WHERE id IN ($1, $2) 
 			ORDER BY id 
 			FOR UPDATE`,
-		firstID, secondID)
+		userFrom, userTo)
 	if err != nil {
 		return fmt.Errorf("failed to lock rows: %w", err)
 	}
