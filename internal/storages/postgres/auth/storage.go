@@ -34,6 +34,7 @@ func (s *Storage) SignUp(ctx context.Context, login, password, userID string) er
 		return err
 	}
 
+	
 	if cmdTag.RowsAffected() == 0 {
 		return fmt.Errorf("user %s already exists", userID)
 	}
