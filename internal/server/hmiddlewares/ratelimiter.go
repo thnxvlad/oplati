@@ -13,10 +13,6 @@ type TimeReq struct {
 	countReques int
 }
 
-const maxRequestPerInterval = 3
-
-const timeIntervalRequests time.Duration = 60 * time.Second
-
 func RateLimiterMiddleware(next http.Handler) http.Handler {
 	var timeRequest map[string]TimeReq = make(map[string]TimeReq)
 	var mutex sync.Mutex

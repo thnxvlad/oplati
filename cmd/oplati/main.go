@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	hserver "github.com/thnxvlad/oplati/internal/server"
@@ -15,6 +16,7 @@ import (
 	"github.com/thnxvlad/oplati/internal/service/oplati"
 	authStorage "github.com/thnxvlad/oplati/internal/storages/postgres/auth"
 	postgresOplatiStorage "github.com/thnxvlad/oplati/internal/storages/postgres/oplati"
+	redislimiter "github.com/thnxvlad/oplati/internal/storages/redis"
 )
 
 const (
@@ -43,6 +45,22 @@ func main() {
 	}
 	defer pool.Close()
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		log.Fatal().Msg("REDIS_ADDR is required")
+	}
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr: redisAddr,
+	})
+
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to redis")
+	}
+	defer rdb.Close()
+
+	redisStorage := redislimiter.New(rdb)
+
 	authOplatiService := oplati.New(postgresOplatiStorage.New(pool))
 	authService := auth.New(authStorage.New(pool), authOplatiService)
 	publicServer := hserver.NewPublicServer(
@@ -51,6 +69,7 @@ func main() {
 		publicAddr,
 		hmiddlewares.LoggingMiddleware,
 		hmiddlewares.NewAuthMiddleware(authService),
+		hmiddlewares.RateLimiterRedisMiddleware(redisStorage),
 	)
 	privateServer := hserver.NewPrivateServer(
 		authOplatiService,
