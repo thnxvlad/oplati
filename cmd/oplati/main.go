@@ -5,17 +5,20 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	hserver "github.com/thnxvlad/oplati/internal/server"
 	"github.com/thnxvlad/oplati/internal/server/hmiddlewares"
 	"github.com/thnxvlad/oplati/internal/service/auth"
 	"github.com/thnxvlad/oplati/internal/service/oplati"
-	authStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/auth"
-	oplatiStorage "github.com/thnxvlad/oplati/internal/storages/inmemory/oplati"
+	authStorage "github.com/thnxvlad/oplati/internal/storages/postgres/auth"
+	oplatiStorage "github.com/thnxvlad/oplati/internal/storages/postgres/oplati"
 	postgresOplatiStorage "github.com/thnxvlad/oplati/internal/storages/postgres/oplati"
+	redisStorage "github.com/thnxvlad/oplati/internal/storages/redis"
 )
 
 const (
@@ -43,20 +46,36 @@ func main() {
 	}
 	defer pool.Close()
 
-	oplatiService := oplati.New(oplatiStorage.NewStorage())
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		log.Fatal().Msg("REDIS_ADDR is required")
+	}
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr: redisAddr,
+	})
+
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to redis")
+	}
+	defer rdb.Close()
+
+	oplatiService := oplati.New(oplatiStorage.New(pool))
 	authOplatiService := oplati.New(postgresOplatiStorage.New(pool))
-	authService := auth.New(authStorage.New(), authOplatiService)
+	authService := auth.New(authStorage.New(pool), authOplatiService)
 	publicServer := hserver.NewPublicServer(
 		oplatiService,
 		authService,
 		publicAddr,
 		hmiddlewares.LoggingMiddleware,
 		hmiddlewares.NewAuthMiddleware(authService),
+		hmiddlewares.RedisRateLimiterMiddleware(redisStorage.New(rdb), 3, time.Second*10),
 	)
 	privateServer := hserver.NewPrivateServer(
 		oplatiService,
 		privateAddr,
 		hmiddlewares.LoggingMiddleware,
+		hmiddlewares.RedisRateLimiterMiddleware(redisStorage.New(rdb), 3, time.Second*10),
 	)
 
 	go func() {
