@@ -10,7 +10,8 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "DATABASE_URL": "postgres://oplati:oplati@localhost:5432/oplati?sslmode=disable",
-        "JWT_SECRET": "dev-debug-secret"
+        "JWT_SECRET": "dev-debug-secret",
+        "REDIS_ADDR": "localhost:6379"
       }
     }
   ]

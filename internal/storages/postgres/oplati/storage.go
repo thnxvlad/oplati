@@ -74,50 +74,50 @@ func (s *Storage) GetUsersInfo(ctx context.Context) ([]domain.UserInfo, error) {
 }
 
 func (s *Storage) Transfer(ctx context.Context, userFrom, userTo uuid.UUID, amount int) error {
-	// tx, err := s.db.BeginTx(ctx, pgx.TxOptions{
-	// 	IsoLevel: pgx.ReadCommitted,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("BeginTx: %w", err)
-	// }
-	// defer func(){
-	// 	_ = tx.Rollback(ctx) 
-	// }()
+	if amount <= 0 {
+		return fmt.Errorf("amount must be positive")
+	}
+	if userFrom == userTo {
+		return fmt.Errorf("cannot transfer to self")
+	}
 
-	// row := tx.QueryRow(ctx, `
-	// 		SELECT  users
-	// 		SET balance = balance - $1
-	// 		WHERE id = $2
-	// 	`, amount, userFrom)
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 
-	// if userFrom.String() < userTo.String() {
-	// 	row := tx.QueryRow(ctx, `
-	// 		UPDATE users
-	// 		SET balance = balance - $1
-	// 		WHERE id = $2
-	// 		RETURNING balance
-	// 	`, amount, userFrom)
-	// 	var balance int
-	// 	if err := row.Scan(&balance); err != nil {
-	// 		if errors.Is(err, pgx.ErrNoRows){
-	// 			return fmt.Errorf("userFrom does not exist")
-	// 		}
-	// 		return err
-	// 	}
-	// 	if balance < 0 {
-	// 		return fmt.Errorf("not enough founds")
-	// 	}
-	// 	tmdTag, err := tx.Exec(ctx, `
-	// 		UPDATE users
-	// 		SET balance = balance + $1
-	// 		WHERE id = $2
-	// 	`, amount, userTo)
-	// 	if tmdTag.RowsAffected()
-	// }
+	_, err = tx.Exec(ctx, `
+			SELECT id FROM users 
+			WHERE id IN ($1, $2) 
+			ORDER BY id 
+			FOR UPDATE`,
+		userFrom, userTo)
+	if err != nil {
+		return fmt.Errorf("failed to lock rows: %w", err)
+	}
 
+	var balance int
+	err = tx.QueryRow(ctx, "SELECT balance FROM users WHERE id = $1", userFrom).Scan(&balance)
+	if err != nil {
+		return err
+	}
 
-	
-	return errors.New("not implemented")
+	if balance < amount {
+		return fmt.Errorf("not enough funds")
+	}
+
+	_, err = tx.Exec(ctx, "UPDATE users SET balance = balance - $1 WHERE id = $2", amount, userFrom)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, "UPDATE users SET balance = balance + $1 WHERE id = $2", amount, userTo)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (s *Storage) Deposit(ctx context.Context, userId uuid.UUID, amount int) error {
