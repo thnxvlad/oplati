@@ -28,5 +28,9 @@ func (s *Storage) IncrementWithTTL(ctx context.Context, key string, limit int64,
 		}
 	}
 
+	if value > limit {
+		return false, nil
+	}
+
 	return true, nil
 }
